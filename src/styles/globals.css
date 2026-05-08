@@ -1,0 +1,328 @@
+/* YomiNote グローバルスタイル */
+
+/* @import は全ての他文より前に置く必要があるため、fontsource からの
+ * webfont 取り込み (Inter / JetBrains Mono / Noto Sans JP / Noto Sans SC) を
+ * ここで行う。これにより Tauri ビルド時にバンドルされ、システムフォント
+ * 非依存で同一の見た目を保証する */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/noto-sans-jp";
+@import "@fontsource-variable/noto-sans-sc";
+
+/* highlight.js のテーマ (ライト) */
+@import "highlight.js/styles/github.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ダークモード時は GitHub Dark を上書き */
+@layer base {
+  /* color-scheme を明示することで、明示してない時に WebView2 が OS 既定の
+   * スクロールバー色を採用してしまう問題を防ぐ (light テーマでも黒スクロールバーが
+   * 出ていた問題)。 */
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  body {
+    font-family: "Inter Variable", "Inter", "Noto Sans JP Variable",
+      "Noto Sans JP", "Noto Sans SC Variable", "Noto Sans SC",
+      -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    /* Inter の OpenType 機能を有効化:
+     *  cv11 = アルタネート 1 (より幾何学的な数字)
+     *  ss03 = stylistic set 3 (4 と 6/9 のヒゲ調整)
+     *  case = case-sensitive forms (大文字隣接時の調整) */
+    font-feature-settings: "cv11", "ss03", "case";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+  }
+  /* エディタ内では選択を許可 */
+  .cm-editor,
+  .cm-content,
+  .zen-preview,
+  input,
+  textarea {
+    user-select: text;
+  }
+}
+
+/* ダーク時の highlight.js 上書き */
+html.dark .hljs {
+  background: transparent;
+  color: #c9d1d9;
+}
+html.dark .hljs-comment,
+html.dark .hljs-quote {
+  color: #8b949e;
+}
+html.dark .hljs-keyword,
+html.dark .hljs-selector-tag {
+  color: #ff7b72;
+}
+html.dark .hljs-string,
+html.dark .hljs-doctag {
+  color: #a5d6ff;
+}
+html.dark .hljs-number,
+html.dark .hljs-literal {
+  color: #79c0ff;
+}
+html.dark .hljs-title,
+html.dark .hljs-section,
+html.dark .hljs-name {
+  color: #d2a8ff;
+}
+html.dark .hljs-attribute,
+html.dark .hljs-attr {
+  color: #ffa657;
+}
+
+/* CodeMirror エディタ全般 */
+.cm-editor {
+  height: 100%;
+}
+/* 編集エリアでも JetBrains Mono の連字 (==, !=, =>, ->, etc.) を有効化 */
+.cm-editor .cm-content,
+.cm-editor .cm-scroller {
+  font-feature-settings: "calt" 1, "liga" 1, "ss19" 1;
+  font-variant-ligatures: contextual;
+}
+/* プレビュー内のコードブロック・行内コードも連字を有効化 */
+.zen-preview pre code,
+.zen-preview code {
+  font-feature-settings: "calt" 1, "liga" 1;
+  font-variant-ligatures: contextual;
+}
+/* 全スクロール可能領域に共通のスクロールバースタイルを当てる
+ * (サイドバー・設定パネル・ユーザー辞書等もここでカバー)。 */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 5px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+html.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+html.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== Markdown プレビュー (GFM 風) ===== */
+.zen-preview {
+  font-size: 15px;
+  line-height: 1.7;
+  color: inherit;
+  max-width: 860px;
+  margin: 0 auto;
+  /* 長い URL や空白を含まない文字列が幅を突き破って横スクロールを誘発するのを防ぐ。
+   * <pre> は white-space: pre で個別に上書きされ、コードは横スクロールのままになる。 */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.zen-preview h1,
+.zen-preview h2,
+.zen-preview h3,
+.zen-preview h4,
+.zen-preview h5,
+.zen-preview h6 {
+  font-weight: 600;
+  margin: 1.6em 0 0.6em;
+  line-height: 1.3;
+}
+.zen-preview h1 {
+  font-size: 2em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-bottom: 0.3em;
+}
+.zen-preview h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-bottom: 0.3em;
+}
+.zen-preview h3 {
+  font-size: 1.25em;
+}
+.zen-preview h4 {
+  font-size: 1em;
+}
+
+html.dark .zen-preview h1,
+html.dark .zen-preview h2 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.zen-preview p {
+  margin: 0.8em 0;
+}
+.zen-preview a {
+  color: #2563eb;
+  text-decoration: none;
+}
+.zen-preview a:hover {
+  text-decoration: underline;
+}
+html.dark .zen-preview a {
+  color: #60a5fa;
+}
+
+/* Tailwind base がリストの list-style を消すため、プレビュー内では復活させる */
+.zen-preview ul {
+  list-style: disc;
+  padding-left: 1.6em;
+  margin: 0.6em 0;
+}
+.zen-preview ol {
+  list-style: decimal;
+  padding-left: 1.6em;
+  margin: 0.6em 0;
+}
+.zen-preview ul ul {
+  list-style: circle;
+}
+.zen-preview ul ul ul {
+  list-style: square;
+}
+.zen-preview li {
+  margin: 0.2em 0;
+}
+/* タスクリストはチェックボックスを表示するので bullet を隠す */
+.zen-preview ul.contains-task-list,
+.zen-preview ul.contains-task-list ul {
+  list-style: none;
+  padding-left: 1.2em;
+}
+.zen-preview li.task-list-item {
+  list-style: none;
+}
+.zen-preview li > input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+.zen-preview blockquote {
+  margin: 1em 0;
+  padding: 0.4em 1em;
+  border-left: 3px solid rgba(0, 0, 0, 0.15);
+  color: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+}
+html.dark .zen-preview blockquote {
+  border-left-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.zen-preview code {
+  /* CJK は halfwidth/fullwidth 整合のあるフォントを優先するため、
+   * Sarasa / MS Gothic / NSimSun を chain に含める (詳細は Editor.tsx と同方針)。 */
+  font-family: "JetBrains Mono Variable", "JetBrains Mono", "Cascadia Code",
+    Consolas, "Sarasa Mono SC", "Sarasa Mono J", "Sarasa Mono TC", "MS Gothic",
+    "ＭＳ ゴシック", "NSimSun", "Osaka-Mono", monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+html.dark .zen-preview code {
+  background: rgba(255, 255, 255, 0.08);
+}
+.zen-preview pre {
+  margin: 1em 0;
+  padding: 1em;
+  border-radius: 6px;
+  background: #f6f8fa;
+  overflow-x: auto;
+  /* 段落の line-height (1.7) を継承するとコード行間が広すぎる。
+   * Unicode 罫線文字 (│ ─ ┌┐└┘) は line-height: 1 で完全に連結する。 */
+  line-height: 1;
+}
+html.dark .zen-preview pre {
+  background: #161b22;
+}
+.zen-preview pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.zen-preview table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  display: block;
+  overflow-x: auto;
+}
+.zen-preview th,
+.zen-preview td {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 0.4em 0.8em;
+}
+.zen-preview th {
+  background: rgba(0, 0, 0, 0.04);
+  font-weight: 600;
+}
+html.dark .zen-preview th,
+html.dark .zen-preview td {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+html.dark .zen-preview th {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.zen-preview img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.zen-preview hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 2em 0;
+}
+html.dark .zen-preview hr {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ===== 日本語アノテーション ===== */
+.zen-preview ruby {
+  ruby-position: over;
+}
+.zen-preview ruby > rt {
+  font-size: 0.55em;
+  color: rgba(0, 0, 0, 0.55);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+html.dark .zen-preview ruby > rt {
+  color: rgba(255, 255, 255, 0.55);
+}
+/* カタカナ英訳は色を分ける */
+.zen-preview ruby.zen-katakana > rt {
+  color: #2563eb;
+  font-style: italic;
+}
+html.dark .zen-preview ruby.zen-katakana > rt {
+  color: #60a5fa;
+}

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(where cargo *)",
+      "Bash(where rustc *)",
+      "Bash(rustc --version)",
+      "PowerShell(Get-Command *)",
+      "Bash(npx vite *)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP=%{http_code}\\\\n\" http://localhost:1420/)",
+      "Bash(curl -sS http://localhost:1420/)",
+      "Bash(curl -sS -o /dev/null -w \"main.tsx=%{http_code}\\\\n\" http://localhost:1420/src/main.tsx)",
+      "Bash(curl -sS -o /dev/null -w \"App.tsx=%{http_code}\\\\n\" http://localhost:1420/src/App.tsx)",
+      "Bash(curl -sS -o /dev/null -w \"Editor.tsx=%{http_code}\\\\n\" http://localhost:1420/src/components/Editor.tsx)",
+      "Bash(curl -sS http://localhost:1420/src/App.tsx)",
+      "Bash(curl *)",
+      "PowerShell($env:Path = \"$env:USERPROFILE\\\\.cargo\\\\bin;\" + $env:Path; & \"$env:USERPROFILE\\\\.cargo\\\\bin\\\\rustup.exe\" default stable-msvc 2>&1 | Select-Object -Last 50)",
+      "PowerShell($env:Path = \"$env:USERPROFILE\\\\.cargo\\\\bin;\" + $env:Path; & \"$env:USERPROFILE\\\\.cargo\\\\bin\\\\rustc.exe\" --version; & \"$env:USERPROFILE\\\\.cargo\\\\bin\\\\cargo.exe\" --version)",
+      "Bash(export PATH=\"/c/Users/dubiaoqi/.cargo/bin:$PATH\")",
+      "Bash(npm run *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Get-Item *)",
+      "Bash(npx @tauri-apps/cli icon ./icon.png)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-CimInstance *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(node scripts/build-jmdict-katakana.mjs)",
+      "Bash(node scripts/test-katakana-dict.mjs)"
+    ]
+  }
+}
