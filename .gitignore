@@ -27,3 +27,6 @@ src-tauri/gen/schemas
 
 # TypeScript incremental build caches
 *.tsbuildinfo
+
+# Claude Code local (per-machine) settings
+.claude/settings.local.json
