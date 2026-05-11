@@ -95,21 +95,24 @@ export function SettingsPanel() {
             </span>
           </Row>
 
-          {/* フォント (datalist で候補を出しつつ自由入力も可) */}
+          {/* フォント (バンドル済み + よくあるフォントから選択) */}
           <Row label={t("settings.fontFamily")}>
-            <input
-              type="text"
-              list="editor-font-options"
+            <select
               value={settings.fontFamily}
               onChange={(e) => update({ fontFamily: e.target.value })}
-              placeholder="JetBrains Mono"
               className="w-64 rounded border border-zen-border bg-zen-bg px-2 py-1 dark:border-zen-dark-border dark:bg-zen-dark-bg"
-            />
-            <datalist id="editor-font-options">
+            >
+              {!EDITOR_FONT_OPTIONS.includes(settings.fontFamily) && (
+                <option value={settings.fontFamily}>
+                  {settings.fontFamily}
+                </option>
+              )}
               {EDITOR_FONT_OPTIONS.map((f) => (
-                <option key={f} value={f} />
+                <option key={f} value={f}>
+                  {f}
+                </option>
               ))}
-            </datalist>
+            </select>
           </Row>
 
           {/* 既定の表示モード */}

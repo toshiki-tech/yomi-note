@@ -136,8 +136,8 @@ const SAMPLE_DOCS: Record<Exclude<Language, "system">, string> = {
 
 - [x] 基本編集
 - [x] リアルタイムプレビュー
+- [x] PDF エクスポート
 - [ ] AI 機能 (今後)
-- [ ] PDF エクスポート (今後)
 
 ## コードハイライト
 
@@ -196,8 +196,8 @@ Click again on the same selection: existing ruby is automatically stripped and r
 
 - [x] Basic editing
 - [x] Live preview
+- [x] PDF export
 - [ ] AI features (planned)
-- [ ] PDF export (planned)
 
 ## Code highlight
 
@@ -256,8 +256,8 @@ function hello(name: string): string {
 
 - [x] 基本編輯
 - [x] 即時預覽
+- [x] PDF 匯出
 - [ ] AI 功能（規劃中）
-- [ ] PDF 匯出（規劃中）
 
 ## 程式碼高亮
 
@@ -316,8 +316,8 @@ function hello(name: string): string {
 
 - [x] 基础编辑
 - [x] 实时预览
+- [x] PDF 导出
 - [ ] AI 功能（计划中）
-- [ ] PDF 导出（计划中）
 
 ## 代码高亮
 
