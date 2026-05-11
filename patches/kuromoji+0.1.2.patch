@@ -1,3 +1,35 @@
+diff --git a/node_modules/kuromoji/src/loader/BrowserDictionaryLoader.js b/node_modules/kuromoji/src/loader/BrowserDictionaryLoader.js
+index 04bfdcd..c30b6a1 100644
+--- a/node_modules/kuromoji/src/loader/BrowserDictionaryLoader.js
++++ b/node_modules/kuromoji/src/loader/BrowserDictionaryLoader.js
+@@ -17,7 +17,9 @@
+ 
+ "use strict";
+ 
+-var zlib = require("zlibjs/bin/gunzip.min.js");
++// ZenMD patch: zlibjs (UMD) は Rollup/minify 環境で zlib.Zlib が undefined になり
++// 解凍に失敗するため、プロジェクト同梱の pako に置き換える。
++var pako = require("pako");
+ var DictionaryLoader = require("./DictionaryLoader");
+ 
+ /**
+@@ -47,8 +49,14 @@ BrowserDictionaryLoader.prototype.loadArrayBuffer = function (url, callback) {
+         }
+         var arraybuffer = this.response;
+ 
+-        var gz = new zlib.Zlib.Gunzip(new Uint8Array(arraybuffer));
+-        var typed_array = gz.decompress();
++        // gzip マジックバイト (0x1f 0x8b) があれば pako で解凍する。
++        // Vite dev server は .gz に Content-Encoding: gzip を付けるため
++        // WebView2 が受信時に既に解凍済みのことがあり、その場合はそのまま使う。
++        var compressed = new Uint8Array(arraybuffer);
++        var typed_array =
++            compressed.length >= 2 && compressed[0] === 0x1f && compressed[1] === 0x8b
++                ? pako.ungzip(compressed)
++                : compressed;
+         callback(null, typed_array.buffer);
+     };
+     xhr.onerror = function (err) {
 diff --git a/node_modules/kuromoji/src/loader/DictionaryLoader.js b/node_modules/kuromoji/src/loader/DictionaryLoader.js
 index 5f88c0b..231573c 100644
 --- a/node_modules/kuromoji/src/loader/DictionaryLoader.js

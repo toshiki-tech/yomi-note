@@ -30,8 +30,6 @@ export const ja = {
     title: "YomiNote - Markdown エディタ",
     confirmDiscardFile: '"{name}" は保存されていません。閉じてもよろしいですか?',
     confirmDiscardAll: "未保存の変更があります。本当に終了しますか?",
-    aboutBody:
-      "YomiNote\n日本語の読みを助ける Markdown エディタ (Furigana + JMdict)\nv{version}",
   },
   sidebar: {
     searchPlaceholder: "ファイル名で検索...",
@@ -112,7 +110,7 @@ export const ja = {
     toolbarAboveTabs: "ツールバーをタブの上に置く",
     japaneseSection: "日本語アノテーション",
     japaneseHint:
-      "ツールバーの「字✨」で選択範囲を一括注釈、「ふ」で漢字のみ、「EN」でカタカナのみ。挿入される記法は {漢字|かんじ} で、再標注時に自動的に剥がして付け直します。辞書は全てオフラインで動作 (kuromoji ~12MB / JMdict ~130KB)。",
+      "ツールバーの「読✨」で選択範囲を一括注釈、「振」で漢字のみ、「英訳」でカタカナのみ、「解」で既存の注釈を除去。挿入される記法は {漢字|かんじ} で、再標注時に自動的に剥がして付け直します。辞書は全てオフラインで動作 (kuromoji ~12MB / JMdict ~130KB)。",
     openUserDict: "ユーザー辞書を開く...",
   },
   insert: {
@@ -179,8 +177,6 @@ export const en: TranslationDict = {
     title: "YomiNote - Markdown Editor",
     confirmDiscardFile: '"{name}" has unsaved changes. Close anyway?',
     confirmDiscardAll: "You have unsaved changes. Quit anyway?",
-    aboutBody:
-      "YomiNote\nMarkdown editor with Japanese reading aids (Furigana + JMdict)\nv{version}",
   },
   sidebar: {
     searchPlaceholder: "Search files...",
@@ -261,7 +257,7 @@ export const en: TranslationDict = {
     toolbarAboveTabs: "Place toolbar above tabs",
     japaneseSection: "Japanese annotations",
     japaneseHint:
-      'Use the toolbar "字✨" for unified auto-annotation, "ふ" for kanji-only furigana, "EN" for katakana-only English glosses. The inserted syntax is {kanji|reading} which gets re-stripped on subsequent annotations to avoid nesting. All dictionaries run offline (kuromoji ~12MB / JMdict ~130KB).',
+      'Use the toolbar "Yomi✨" for unified auto-annotation, "Furi" for kanji-only furigana, "EN" for katakana-only English glosses, "Plain" to strip existing annotations. The inserted syntax is {kanji|reading} which gets re-stripped on subsequent annotations to avoid nesting. All dictionaries run offline (kuromoji ~12MB / JMdict ~130KB).',
     openUserDict: "Open user dictionary...",
   },
   insert: {
@@ -327,8 +323,6 @@ export const zh: TranslationDict = {
     title: "YomiNote - Markdown 编辑器",
     confirmDiscardFile: '"{name}" 有未保存的更改，确定要关闭吗？',
     confirmDiscardAll: "有未保存的更改，确定要退出吗？",
-    aboutBody:
-      "YomiNote\n带日语辅助阅读功能的 Markdown 编辑器 (Furigana + JMdict)\nv{version}",
   },
   sidebar: {
     searchPlaceholder: "搜索文件名...",
@@ -409,7 +403,7 @@ export const zh: TranslationDict = {
     toolbarAboveTabs: "工具栏放在标签页上方",
     japaneseSection: "日语辅助标注",
     japaneseHint:
-      '工具栏 "字✨" 一键自动标注，"ふ" 仅给汉字加假名，"EN" 仅给片假名加英文。源码使用 {汉字|读音} 简洁语法，重复标注会自动去掉旧标记再加新的，避免嵌套。字典完全离线运行 (kuromoji ~12MB / JMdict ~130KB)。',
+      '工具栏 "読✨" 一键自动标注，"振" 仅给汉字加假名，"EN" 仅给片假名加英文，"解" 移除已有标注。源码使用 {汉字|读音} 简洁语法，重复标注会自动去掉旧标记再加新的，避免嵌套。字典完全离线运行 (kuromoji ~12MB / JMdict ~130KB)。',
     openUserDict: "打开用户词库...",
   },
   insert: {
@@ -474,8 +468,6 @@ export const zhTW: TranslationDict = {
     title: "YomiNote - Markdown 編輯器",
     confirmDiscardFile: '"{name}" 有未儲存的變更，確定要關閉嗎？',
     confirmDiscardAll: "有未儲存的變更，確定要結束嗎？",
-    aboutBody:
-      "YomiNote\n具備日語輔助閱讀功能的 Markdown 編輯器 (Furigana + JMdict)\nv{version}",
   },
   sidebar: {
     searchPlaceholder: "搜尋檔案名稱...",
@@ -556,7 +548,7 @@ export const zhTW: TranslationDict = {
     toolbarAboveTabs: "工具列放在分頁上方",
     japaneseSection: "日語輔助標註",
     japaneseHint:
-      "工具列 \"字✨\" 一鍵自動標註，\"ふ\" 僅為漢字加注音，\"EN\" 僅為片假名加英文。原始碼使用 {漢字|讀音} 簡潔語法，重複標註會自動去除舊標記再重新加上，避免巢狀。字典完全離線運作 (kuromoji ~12MB / JMdict ~130KB)。",
+      "工具列 \"読✨\" 一鍵自動標註，\"振\" 僅為漢字加注音，\"EN\" 僅為片假名加英文，\"解\" 移除已有標註。原始碼使用 {漢字|讀音} 簡潔語法，重複標註會自動去除舊標記再重新加上，避免巢狀。字典完全離線運作 (kuromoji ~12MB / JMdict ~130KB)。",
     openUserDict: "開啟使用者詞庫...",
   },
   insert: {

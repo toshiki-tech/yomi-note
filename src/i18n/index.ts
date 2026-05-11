@@ -113,11 +113,12 @@ const SAMPLE_DOCS: Record<Exclude<Language, "system">, string> = {
 
 > {今日|きょう}は{新|あたら}しい{コンピュータ|computer}を{買|か}って、{東京駅|とうきょうえき}で{コーヒー|coffee}を{飲|の}みながら{メール|mail / e-mail}を{確認|かくにん}した。
 
-ツールバーには 3 つのアノテーションボタンがあります:
+ツールバーには 4 つのアノテーションボタンがあります:
 
 - **読** ✨ — 一括 (漢字に振り仮名 + カタカナに英訳)
 - **振** — 漢字のみ振り仮名
 - **英訳** — カタカナのみ英訳
+- **解** — 選択範囲の既存ルビを取り除く
 
 二回目に押すと既存のルビが自動で剥がされ、付け直されるのでネストしません。読みが間違っていたら \`{base|reading}\` の reading 部分を直接書き換えれば OK。
 
@@ -172,11 +173,12 @@ function hello(name: string): string {
 
 > {今日|きょう}は{新|あたら}しい{コンピュータ|computer}を{買|か}って、{東京駅|とうきょうえき}で{コーヒー|coffee}を{飲|の}みながら{メール|mail / e-mail}を{確認|かくにん}した。
 
-Three annotation buttons:
+Four annotation buttons:
 
 - **Yomi** ✨ — both furigana on kanji + English on katakana
 - **Furi** — kanji-only furigana
 - **EN** — katakana-only English gloss
+- **Plain** — strip existing ruby from the selection
 
 Click again on the same selection: existing ruby is automatically stripped and re-applied (no nesting). To fix a wrong reading, just edit the \`reading\` part of \`{base|reading}\` directly.
 
@@ -231,11 +233,12 @@ function hello(name: string): string {
 
 > {今日|きょう}は{新|あたら}しい{コンピュータ|computer}を{買|か}って、{東京駅|とうきょうえき}で{コーヒー|coffee}を{飲|の}みながら{メール|mail / e-mail}を{確認|かくにん}した。
 
-工具列有三個標註按鈕：
+工具列有四個標註按鈕：
 
 - **読** ✨ — 一鍵搞定（漢字注音 + 片假名英文）
 - **振** — 僅為漢字加注音
 - **EN** — 僅為片假名加英文
+- **解** — 移除選取範圍內已有的注音
 
 第二次點擊同一段：舊的 ruby 會自動被剝離再重新產生，不會巢狀。讀音不對？直接編輯 \`{原文|讀音}\` 中讀音的部分即可。
 
@@ -290,11 +293,12 @@ function hello(name: string): string {
 
 > {今日|きょう}は{新|あたら}しい{コンピュータ|computer}を{買|か}って、{東京駅|とうきょうえき}で{コーヒー|coffee}を{飲|の}みながら{メール|mail / e-mail}を{確認|かくにん}した。
 
-工具栏有三个标注按钮：
+工具栏有四个标注按钮：
 
 - **読** ✨ — 一键搞定（汉字注音 + 片假名英文）
 - **振** — 仅给汉字加注音
 - **EN** — 仅给片假名加英文
+- **解** — 移除选区内已有的注音
 
 第二次点击同一段：旧的 ruby 会自动被剥掉再重新生成，不会嵌套。读音不对？直接编辑 \`{原文|读音}\` 中读音部分即可。
 

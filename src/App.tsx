@@ -10,6 +10,7 @@ import { Toolbar } from "./components/Toolbar";
 import { ActionToolbarLeft } from "./components/ActionToolbar";
 import { StatusBar } from "./components/StatusBar";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { AboutDialog } from "./components/AboutDialog";
 import { UserDictPanel } from "./components/UserDictPanel";
 import { useAppStore } from "./store/useAppStore";
 import { useSettingsStore } from "./store/useSettingsStore";
@@ -259,6 +260,7 @@ export default function App() {
       </div>
       <StatusBar />
       <SettingsPanel />
+      <AboutDialog />
       {/* 浮動モード時の前半ツールバー (書式 + 注釈 + ハンドル)。
           後半 (モード切替 + 設定) は Toolbar.tsx 内に常に固定で残る。 */}
       {settings.toolbarFloating && (
@@ -362,7 +364,10 @@ function useDarkMode(mode: "light" | "dark" | "system"): boolean {
     return () => mq.removeEventListener("change", handler);
   }, [mode]);
 
-  // Tailwind の dark クラスを html に付与
+  // Tailwind の dark クラスを html に付与し、color-scheme も明示する。
+  // color-scheme を inline style で立てておかないと、WebView2 が <select> の
+  // ドロップダウンなど native フォームコントロールを OS テーマ側で描画してしまい、
+  // ライトテーマでもプルダウンだけ黒くなる。
   useEffect(() => {
     const root = document.documentElement;
     if (isDark) {
@@ -370,6 +375,7 @@ function useDarkMode(mode: "light" | "dark" | "system"): boolean {
     } else {
       root.classList.remove("dark");
     }
+    root.style.colorScheme = isDark ? "dark" : "light";
   }, [isDark]);
 
   return isDark;

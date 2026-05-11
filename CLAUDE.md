@@ -48,11 +48,14 @@ Two layers, both feeding the same `{base|reading}` source-level syntax:
 
 The user dictionary lookup is wired in via a setter (`setUserDictLookup`) called from `App.tsx` to avoid a circular import between `katakanaDict.ts` and `useUserDictStore.ts`.
 
-#### Critical workaround: kuromoji + Vite + WebView2
+#### Critical workaround: kuromoji dictionary loading
 
-Vite's dev server auto-decompresses `.gz` responses (sets `Content-Encoding: gzip`), but kuromoji's `DictionaryLoader` expects raw gzipped bytes and re-decompresses them. The result: dictionary loading fails silently in dev. `patchXHRForKuromoji()` in `japaneseAnnotate.ts` monkey-patches `XMLHttpRequest.prototype.open` to detect already-decompressed responses (no `0x1f 0x8b` magic bytes) and re-gzip them with pako before kuromoji's onload fires. **Do not remove this patch** unless you also change how the dictionary is served.
+`patches/kuromoji+0.1.2.patch` (applied via `patch-package` on install) rewrites kuromoji's `BrowserDictionaryLoader`:
+- Replaces `require("zlibjs/bin/gunzip.min.js")` with `require("pako")` for gunzip. The original zlibjs is a UMD bundle whose CommonJS interop breaks under Rollup/minify, so `zlib.Zlib` was `undefined` in production builds (worked in dev because esbuild doesn't tree-shake it) — the dictionary `xhr.onload` threw `Cannot read properties of undefined (reading 'Gunzip')` and `kuroshiro.init()` never settled.
+- The patched loader also tolerates already-decompressed responses (no `0x1f 0x8b` magic bytes): Vite's dev server sets `Content-Encoding: gzip` on `.gz` files so WebView2 may hand back decompressed bytes; in that case the bytes are used as-is instead of being run through pako.
+- Also stubs `require("path")` (not available in the browser) with a tiny `path.join`.
 
-There is also a `patches/kuromoji+0.1.2.patch` applied via `patch-package` on install — needed for kuromoji to work with bundlers.
+`ensureInit()` in `japaneseAnnotate.ts` wraps `kuroshiro.init()` in a 60 s timeout so a future loader failure surfaces as an error instead of an indefinitely spinning annotation button.
 
 ### Custom `{base|reading}` ruby syntax
 

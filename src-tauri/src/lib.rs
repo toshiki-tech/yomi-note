@@ -370,6 +370,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         // ファイル選択ダイアログ
         .plugin(tauri_plugin_dialog::init())
+        // 外部 URL をシステムの既定ブラウザで開く (About ダイアログのリンク等)
+        .plugin(tauri_plugin_opener::init())
         // ファイルシステム API
         .plugin(tauri_plugin_fs::init())
         // OS 情報 (プラットフォーム判定)

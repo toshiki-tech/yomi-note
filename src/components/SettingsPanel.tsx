@@ -7,6 +7,19 @@ import { useT } from "../i18n";
 import type { Language, ThemeMode, ViewMode } from "../types";
 // useAppStore is already imported above; kept side-effect-free
 
+// エディタフォントの候補 (datalist 用)。バンドル済みフォント + よくある等幅フォント。
+const EDITOR_FONT_OPTIONS = [
+  "JetBrains Mono",
+  "Cascadia Code",
+  "Consolas",
+  "Fira Code",
+  "Source Code Pro",
+  "Menlo",
+  "Inter",
+  "Noto Sans JP",
+  "Noto Sans SC",
+];
+
 export function SettingsPanel() {
   const open = useAppStore((s) => s.settingsOpen);
   const setOpen = useAppStore((s) => s.setSettingsOpen);
@@ -19,7 +32,7 @@ export function SettingsPanel() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40"
       onClick={() => setOpen(false)}
     >
       <div
@@ -82,15 +95,21 @@ export function SettingsPanel() {
             </span>
           </Row>
 
-          {/* フォント */}
+          {/* フォント (datalist で候補を出しつつ自由入力も可) */}
           <Row label={t("settings.fontFamily")}>
             <input
               type="text"
+              list="editor-font-options"
               value={settings.fontFamily}
               onChange={(e) => update({ fontFamily: e.target.value })}
               placeholder="JetBrains Mono"
               className="w-64 rounded border border-zen-border bg-zen-bg px-2 py-1 dark:border-zen-dark-border dark:bg-zen-dark-bg"
             />
+            <datalist id="editor-font-options">
+              {EDITOR_FONT_OPTIONS.map((f) => (
+                <option key={f} value={f} />
+              ))}
+            </datalist>
           </Row>
 
           {/* 既定の表示モード */}

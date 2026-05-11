@@ -10,6 +10,7 @@
     "core:window:allow-close",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
+    "core:window:allow-set-theme",
     "core:event:default",
     "core:webview:allow-internal-toggle-devtools",
 
@@ -19,6 +20,11 @@
     "dialog:allow-message",
     "dialog:allow-ask",
     "dialog:allow-confirm",
+
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://**" }]
+    },
 
     "fs:default",
     "fs:allow-read-text-file",

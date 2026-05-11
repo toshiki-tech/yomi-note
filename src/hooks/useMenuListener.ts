@@ -18,9 +18,6 @@ import {
 } from "../utils/fs";
 import { exportHTML, exportPDF } from "../utils/export";
 import { t } from "../i18n";
-import pkg from "../../package.json";
-
-const APP_VERSION = pkg.version;
 
 export function useMenuListener(editorView: EditorView | null) {
   // EditorView は再レンダで変わるため ref で保持
@@ -142,7 +139,7 @@ export function useMenuListener(editorView: EditorView | null) {
             break;
 
           case "about":
-            window.alert(t("app.aboutBody", { version: APP_VERSION }));
+            store.setAboutOpen(true);
             break;
 
           case "export_html": {

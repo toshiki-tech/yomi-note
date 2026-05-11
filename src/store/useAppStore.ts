@@ -25,6 +25,7 @@ interface AppState {
   sidebarOpen: boolean;
   settingsOpen: boolean;
   userDictOpen: boolean;
+  aboutOpen: boolean;
 
   // === ファイルツリー / 最近のファイル ===
   workspaceRoot: string | null;
@@ -49,6 +50,7 @@ interface AppState {
   toggleSidebar: () => void;
   setSettingsOpen: (open: boolean) => void;
   setUserDictOpen: (open: boolean) => void;
+  setAboutOpen: (open: boolean) => void;
 
   // === アクション: ワークスペース ===
   setWorkspace: (root: string | null, tree: FileTreeNode[] | null) => void;
@@ -84,6 +86,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   sidebarOpen: true,
   settingsOpen: false,
   userDictOpen: false,
+  aboutOpen: false,
 
   workspaceRoot: null,
   fileTree: null,
@@ -184,6 +187,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setUserDictOpen: (open) => set({ userDictOpen: open }),
+  setAboutOpen: (open) => set({ aboutOpen: open }),
 
   setWorkspace: (root, tree) =>
     set({ workspaceRoot: root, fileTree: tree, selectedFolderPath: null }),

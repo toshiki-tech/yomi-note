@@ -2,74 +2,18 @@
 // 1. 漢字に furigana (kuroshiro による形態素解析 + ひらがな読み)
 // 2. カタカナ語に英訳 (内蔵辞書からの最長一致)
 //
-// kuroshiro / kuromoji の辞書 (~12MB) はサイズが大きいため、
+// kuroshiro / kuromoji の辞書 (~12MB, gzip 圧縮済み) はサイズが大きいため、
 // 機能が有効化されたタイミングで遅延ロードする。
+//
+// 辞書 (.dat.gz) の解凍は kuromoji 側 (BrowserDictionaryLoader) を patch-package で
+// pako に差し替えて行う (patches/kuromoji+0.1.2.patch)。元の zlibjs は UMD のため
+// Rollup/minify されたプロダクションビルドで壊れていた。
 
 // @ts-expect-error - kuroshiro に型定義が同梱されていない
 import Kuroshiro from "kuroshiro";
 // @ts-expect-error - 同上
 import KuromojiAnalyzer from "kuroshiro-analyzer-kuromoji";
-import pako from "pako";
 import { ensureKatakanaDictLoaded, lookupKatakana } from "./katakanaDict";
-
-/**
- * Vite dev server は public/ 以下の .gz ファイルに自動的に Content-Encoding: gzip
- * を付けて配信する。すると WebView2/ブラウザが受信時に自動解凍してしまい、
- * kuromoji の DictionaryLoader が期待する "gzip 圧縮済みバイト列" ではなく
- * "解凍済みバイト列" を受け取って再解凍に失敗する。
- *
- * ここでは XMLHttpRequest をパッチし、kuromoji の辞書 URL に対するレスポンスが
- * gzip マジックバイト (0x1f 0x8b) を持たない (= ブラウザが既に解凍した) 場合、
- * pako で再圧縮してから kuromoji 側の onload に渡す。
- */
-let xhrPatched = false;
-function patchXHRForKuromoji() {
-  if (xhrPatched) return;
-  xhrPatched = true;
-  const origOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function (
-    this: XMLHttpRequest,
-    method: string,
-    url: string | URL,
-    ...rest: unknown[]
-  ) {
-    const urlStr = typeof url === "string" ? url : url.toString();
-    if (
-      urlStr.includes("/kuromoji/dict/") &&
-      urlStr.endsWith(".dat.gz")
-    ) {
-      // load イベントが kuromoji の onload より前に発火するように capture フェーズで聴く
-      this.addEventListener(
-        "readystatechange",
-        function (this: XMLHttpRequest) {
-          if (this.readyState !== 4) return;
-          if (!(this.response instanceof ArrayBuffer)) return;
-          const arr = new Uint8Array(this.response);
-          // 既に gzip 圧縮されている場合は何もしない
-          if (arr.length >= 2 && arr[0] === 0x1f && arr[1] === 0x8b) return;
-          // ブラウザが解凍済みなので再圧縮して response を差し替える
-          try {
-            const recompressed = pako.gzip(arr);
-            Object.defineProperty(this, "response", {
-              configurable: true,
-              get() {
-                return recompressed.buffer.slice(
-                  recompressed.byteOffset,
-                  recompressed.byteOffset + recompressed.byteLength,
-                ) as ArrayBuffer;
-              },
-            });
-          } catch (err) {
-            console.warn("kuromoji dict 再圧縮に失敗", err);
-          }
-        },
-        true,
-      );
-    }
-    // @ts-expect-error - rest spread typing
-    return origOpen.call(this, method, url, ...rest);
-  };
-}
 
 interface AnnotateOptions {
   furigana: boolean;
@@ -81,17 +25,27 @@ let kuroshiro: any = null;
 /** 初期化中の Promise (重複初期化防止) */
 let initPromise: Promise<void> | null = null;
 
-/** 遅延初期化: 辞書をネットワーク経由で読み込む */
+/** 遅延初期化: 辞書を読み込む */
 async function ensureInit(): Promise<void> {
   if (kuroshiro) return;
   if (initPromise) return initPromise;
   initPromise = (async () => {
-    // kuromoji が辞書をフェッチする前に XHR をパッチしておく
-    patchXHRForKuromoji();
     const instance = new Kuroshiro();
     // public/kuromoji/dict/ 以下に配置済みの辞書を利用
     const analyzer = new KuromojiAnalyzer({ dictPath: "/kuromoji/dict" });
-    await instance.init(analyzer);
+    try {
+      // 辞書ロードが何らかの理由で完了しない場合に備えてタイムアウトを設ける
+      await Promise.race([
+        instance.init(analyzer),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("KUROMOJI_INIT_TIMEOUT")), 60_000),
+        ),
+      ]);
+    } catch (err) {
+      // 失敗したら次回再試行できるようにリセット
+      initPromise = null;
+      throw err;
+    }
     kuroshiro = instance;
   })();
   return initPromise;
