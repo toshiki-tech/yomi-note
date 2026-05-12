@@ -11,20 +11,28 @@ import { ActionToolbarLeft } from "./components/ActionToolbar";
 import { StatusBar } from "./components/StatusBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { AboutDialog } from "./components/AboutDialog";
+import { MediaInsertDialog } from "./components/MediaInsertDialog";
 import { UserDictPanel } from "./components/UserDictPanel";
 import { useAppStore } from "./store/useAppStore";
 import { useSettingsStore } from "./store/useSettingsStore";
 import { useMenuListener } from "./hooks/useMenuListener";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { emit, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { insertDroppedFiles } from "./utils/mediaActions";
 import { readFile } from "./utils/fs";
 import { confirmDiscard } from "./utils/fs";
 import { getSampleDoc, resolveLanguage, useT, t as tNow } from "./i18n";
 import { useUserDictStore, lookupUserDict } from "./store/useUserDictStore";
 import { setUserDictLookup } from "./utils/katakanaDict";
-import { SPLIT_RATIO_MIN, SPLIT_RATIO_MAX } from "./types";
+import {
+  SPLIT_RATIO_MIN,
+  SPLIT_RATIO_MAX,
+  SIDEBAR_WIDTH_MIN,
+  SIDEBAR_WIDTH_MAX,
+} from "./types";
 
 export default function App() {
   const viewMode = useAppStore((s) => s.viewMode);
@@ -69,6 +77,29 @@ export default function App() {
       .setTheme(target)
       .catch((err) => console.warn("setTheme 失敗", err));
   }, [settings.theme]);
+
+  // ファイルをウィンドウにドラッグ&ドロップしたら、対応形式のものを
+  // ドキュメント直下の assets/ にコピーしてエディタへ参照を挿入する。
+  useEffect(() => {
+    if (!editorView) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    void getCurrentWebview()
+      .onDragDropEvent((event) => {
+        if (event.payload.type !== "drop") return;
+        const paths = event.payload.paths;
+        if (!paths || paths.length === 0) return;
+        void insertDroppedFiles(editorView, paths);
+      })
+      .then((un) => {
+        if (cancelled) un();
+        else unlisten = un;
+      });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [editorView]);
 
   // Ctrl+S / Ctrl+Shift+S は WebView2 のページ保存に横取りされネイティブメニューの
   // アクセラレータが発火しないことがある。フロント側で先に捕捉し、
@@ -206,7 +237,17 @@ export default function App() {
     >
       <Toolbar editorView={editorView} />
       <div className="flex min-w-0 flex-1 overflow-hidden">
-        {sidebarOpen && <Sidebar />}
+        {sidebarOpen && (
+          <>
+            <Sidebar
+              width={settings.sidebarWidth}
+              onInsertMedia={(path) => {
+                if (editorView) void insertDroppedFiles(editorView, [path]);
+              }}
+            />
+            <SidebarDragger />
+          </>
+        )}
         <main className="flex min-w-0 flex-1 overflow-hidden">
           {/* エディタ */}
           {(viewMode === "edit" || viewMode === "split") && (
@@ -250,6 +291,7 @@ export default function App() {
                 <Preview
                   ref={previewRef}
                   source={activeDoc.content}
+                  docPath={activeDoc.path}
                 />
               ) : (
                 <EmptyState />
@@ -261,6 +303,7 @@ export default function App() {
       <StatusBar />
       <SettingsPanel />
       <AboutDialog />
+      <MediaInsertDialog editorView={editorView} />
       {/* 浮動モード時の前半ツールバー (書式 + 注釈 + ハンドル)。
           後半 (モード切替 + 設定) は Toolbar.tsx 内に常に固定で残る。 */}
       {settings.toolbarFloating && (
@@ -323,6 +366,56 @@ function SplitDragger() {
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       title={t("toolbar.splitDragger")}
+      className="group relative h-full w-1 shrink-0 cursor-col-resize bg-zen-border hover:bg-zen-accent/60 dark:bg-zen-dark-border dark:hover:bg-zen-dark-accent/60"
+    >
+      {/* ヒットエリアを実際の枠より広く取る (掴みやすさ向上) */}
+      <div className="absolute inset-y-0 -left-1 -right-1" />
+    </div>
+  );
+}
+
+/** 左サイドバーの幅可変ハンドル
+ *  - ドラッグで settings.sidebarWidth を更新
+ *  - ダブルクリックで既定幅 (256px) にリセット */
+function SidebarDragger() {
+  const t = useT();
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    let lastWidth = useSettingsStore.getState().settings.sidebarWidth;
+    function onMove(ev: MouseEvent) {
+      // サイドバーは画面左端から始まるので、幅 = カーソルの X 座標
+      let w = ev.clientX;
+      if (w < SIDEBAR_WIDTH_MIN) w = SIDEBAR_WIDTH_MIN;
+      if (w > SIDEBAR_WIDTH_MAX) w = SIDEBAR_WIDTH_MAX;
+      lastWidth = w;
+      // ドラッグ中は in-memory のみ更新 (60Hz の disk 書込みを避ける)
+      useSettingsStore.setState((s) => ({
+        settings: { ...s.settings, sidebarWidth: w },
+      }));
+    }
+    function onUp() {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      void useSettingsStore.getState().update({ sidebarWidth: lastWidth });
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const handleDoubleClick = () => {
+    void useSettingsStore.getState().update({ sidebarWidth: 256 });
+  };
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
+      title={t("sidebar.resizeHandle")}
       className="group relative h-full w-1 shrink-0 cursor-col-resize bg-zen-border hover:bg-zen-accent/60 dark:bg-zen-dark-border dark:hover:bg-zen-dark-accent/60"
     >
       {/* ヒットエリアを実際の枠より広く取る (掴みやすさ向上) */}

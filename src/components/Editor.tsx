@@ -33,6 +33,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { useAppStore } from "../store/useAppStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { toggleBold, toggleItalic } from "../utils/editorCommands";
+import { insertPastedImage } from "../utils/mediaActions";
 
 interface EditorProps {
   isDark: boolean;
@@ -119,6 +120,23 @@ export function Editor({ isDark, onScroll, onReady }: EditorProps) {
             if (max > 0 && onScroll) {
               onScroll(sd.scrollTop / max);
             }
+          },
+          // クリップボードに画像があれば assets/ に書き出して挿入する
+          paste: (e, view) => {
+            const items = e.clipboardData?.items;
+            if (!items) return false;
+            for (let i = 0; i < items.length; i++) {
+              const it = items[i];
+              if (it.kind === "file" && it.type.startsWith("image/")) {
+                const file = it.getAsFile();
+                if (file) {
+                  e.preventDefault();
+                  void insertPastedImage(view, file);
+                  return true;
+                }
+              }
+            }
+            return false;
           },
         }),
       ],

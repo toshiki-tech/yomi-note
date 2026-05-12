@@ -65,6 +65,8 @@ export interface AppSettings {
   draftDir: string;
   /** 分割表示時のエディタ幅の割合 (0..1)。残りはプレビュー */
   splitRatio: number;
+  /** 左サイドバー (ファイルツリー) の幅 (px) */
+  sidebarWidth: number;
   /** ツールバー (書式 + 表示モード行) の上にタブストリップを置くか。
    *  false = タブが上 / ツールバーが下 (旧レイアウト)
    *  true  = ツールバーが上 / タブが下 (一般的なレイアウト、既定) */
@@ -91,6 +93,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   previewSerif: false,
   draftDir: "",
   splitRatio: 0.5,
+  sidebarWidth: 256,
   toolbarAboveTabs: true,
   toolbarFloating: false,
   toolbarOffsetX: 0,
@@ -101,3 +104,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 /** splitRatio の許容範囲。極端な値で片側が消えるのを防ぐ */
 export const SPLIT_RATIO_MIN = 0.15;
 export const SPLIT_RATIO_MAX = 0.85;
+
+/** サイドバー幅 (px) の許容範囲 */
+export const SIDEBAR_WIDTH_MIN = 160;
+export const SIDEBAR_WIDTH_MAX = 600;

@@ -26,6 +26,7 @@ interface AppState {
   settingsOpen: boolean;
   userDictOpen: boolean;
   aboutOpen: boolean;
+  mediaDialogOpen: boolean;
 
   // === ファイルツリー / 最近のファイル ===
   workspaceRoot: string | null;
@@ -51,6 +52,7 @@ interface AppState {
   setSettingsOpen: (open: boolean) => void;
   setUserDictOpen: (open: boolean) => void;
   setAboutOpen: (open: boolean) => void;
+  setMediaDialogOpen: (open: boolean) => void;
 
   // === アクション: ワークスペース ===
   setWorkspace: (root: string | null, tree: FileTreeNode[] | null) => void;
@@ -87,6 +89,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   settingsOpen: false,
   userDictOpen: false,
   aboutOpen: false,
+  mediaDialogOpen: false,
 
   workspaceRoot: null,
   fileTree: null,
@@ -188,6 +191,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSettingsOpen: (open) => set({ settingsOpen: open }),
   setUserDictOpen: (open) => set({ userDictOpen: open }),
   setAboutOpen: (open) => set({ aboutOpen: open }),
+  setMediaDialogOpen: (open) => set({ mediaDialogOpen: open }),
 
   setWorkspace: (root, tree) =>
     set({ workspaceRoot: root, fileTree: tree, selectedFolderPath: null }),

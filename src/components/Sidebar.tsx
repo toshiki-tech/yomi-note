@@ -15,8 +15,10 @@ import {
   removePath,
   validateEntryName,
   confirmDiscard,
+  isMarkdownPath,
 } from "../utils/fs";
 import { useT, t as tNow } from "../i18n";
+import { mediaKindOf } from "../utils/mediaActions";
 import type { FileTreeNode } from "../types";
 
 /** 右クリックメニューの状態 */
@@ -27,7 +29,14 @@ interface CtxMenu {
   node: FileTreeNode | null;
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  /** ファイルツリー上のメディアファイルをクリックしたとき、エディタへ参照を挿入する */
+  onInsertMedia: (path: string) => void;
+  /** サイドバーの幅 (px)。可変ハンドルで変更される */
+  width: number;
+}
+
+export function Sidebar({ onInsertMedia, width }: SidebarProps) {
   const {
     fileTree,
     workspaceRoot,
@@ -166,7 +175,7 @@ export function Sidebar() {
     const msgKey = node.isDirectory
       ? "sidebar.confirmDeleteFolder"
       : "sidebar.confirmDeleteFile";
-    const ok = await confirmDiscard(t(msgKey, { name: node.name }));
+    const ok = await confirmDiscard(t(msgKey, { name: node.name }), t("sidebar.delete"));
     if (!ok) return;
     try {
       await removePath(node.path, node.isDirectory);
@@ -180,7 +189,8 @@ export function Sidebar() {
 
   return (
     <aside
-      className="relative flex h-full w-64 flex-col border-r border-zen-border bg-zen-surface text-sm dark:border-zen-dark-border dark:bg-zen-dark-surface"
+      className="relative flex h-full shrink-0 flex-col border-r border-zen-border bg-zen-surface text-sm dark:border-zen-dark-border dark:bg-zen-dark-surface"
+      style={{ width }}
       // サイドバー余白の右クリックでもワークスペース対象のメニューが開くように
       onContextMenu={(e) => {
         if (!workspaceRoot) return;
@@ -258,6 +268,7 @@ export function Sidebar() {
                 onRename={handleRename}
                 onDelete={handleDelete}
                 onContextMenu={openContextMenu}
+                onInsertMedia={onInsertMedia}
               />
             ))}
           </div>
@@ -324,6 +335,7 @@ interface TreeNodeProps {
   onRename: (node: FileTreeNode) => void;
   onDelete: (node: FileTreeNode) => void;
   onContextMenu: (e: React.MouseEvent, node: FileTreeNode) => void;
+  onInsertMedia: (path: string) => void;
 }
 
 /** 折りたたみ可能なツリーノード */
@@ -337,6 +349,7 @@ function TreeNode({
   onRename,
   onDelete,
   onContextMenu,
+  onInsertMedia,
 }: TreeNodeProps) {
   const [open, setOpen] = useState(depth === 0);
   const isSelected = node.isDirectory && node.path === selectedFolderPath;
@@ -422,6 +435,7 @@ function TreeNode({
                 onRename={onRename}
                 onDelete={onDelete}
                 onContextMenu={onContextMenu}
+                onInsertMedia={onInsertMedia}
               />
             ))}
           </div>
@@ -430,18 +444,38 @@ function TreeNode({
     );
   }
 
+  const mediaKind = mediaKindOf(node.name);
+  const isMedia = !isMarkdownPath(node.name);
   return (
     <div
       className="group flex w-full items-center pr-1 hover:bg-black/5 dark:hover:bg-white/10"
       onContextMenu={(e) => onContextMenu(e, node)}
     >
       <button
-        onClick={() => onOpen(node.path, node.name)}
+        onClick={() => {
+          if (isMedia) {
+            onInsertMedia(node.path); // メディアファイル: クリックでエディタに挿入
+            return;
+          }
+          onOpen(node.path, node.name);
+        }}
         className="flex flex-1 items-center px-3 py-1 text-left text-xs"
         style={{ paddingLeft: 12 + depth * 12 }}
-        title={node.path}
+        title={isMedia ? `${node.path}\n${tNow("sidebar.clickToInsert")}` : node.path}
       >
-        <span className="mr-1 text-zen-subtle dark:text-zen-dark-subtle">◦</span>
+        <span className="mr-1 inline-flex items-center text-zen-subtle dark:text-zen-dark-subtle">
+          {mediaKind === "image" ? (
+            <ImageFileIcon />
+          ) : mediaKind === "audio" ? (
+            <AudioFileIcon />
+          ) : mediaKind === "video" ? (
+            <VideoFileIcon />
+          ) : isMedia ? (
+            <MediaFileIcon />
+          ) : (
+            <span>◦</span>
+          )}
+        </span>
         <span className="truncate">{node.name}</span>
       </button>
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
@@ -647,6 +681,45 @@ function NewFileIcon() {
       <polyline points="14 2 14 8 20 8" />
       <line x1="12" y1="13" x2="12" y2="19" />
       <line x1="9" y1="16" x2="15" y2="16" />
+    </Svg>
+  );
+}
+
+function MediaFileIcon() {
+  // 画像 / 音声 / 動画のいずれにも当てはまらない非 Markdown ファイル用の汎用アイコン
+  return (
+    <Svg>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+    </Svg>
+  );
+}
+
+function ImageFileIcon() {
+  return (
+    <Svg>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="M21 15l-5-5L5 21" />
+    </Svg>
+  );
+}
+
+function AudioFileIcon() {
+  return (
+    <Svg>
+      <path d="M9 18V5l12-2v13" />
+      <circle cx="6" cy="18" r="3" />
+      <circle cx="18" cy="16" r="3" />
+    </Svg>
+  );
+}
+
+function VideoFileIcon() {
+  return (
+    <Svg>
+      <polygon points="23 7 16 12 23 17 23 7" />
+      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
     </Svg>
   );
 }

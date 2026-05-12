@@ -71,8 +71,14 @@ export function useMenuListener(editorView: EditorView | null) {
             const isNewPath = !doc.path || saveAs;
             let path: string | null = doc.path;
             if (isNewPath) {
-              const preferDir = useAppStore.getState().selectedFolderPath;
-              path = await showSaveFileDialog(doc.name, doc.path, preferDir);
+              // 保存先の既定ディレクトリ: サイドバーで選択中のフォルダ > 開いているワークスペース。
+              // ダイアログ上で別の場所を選べば、もちろんそちらが優先される。
+              const st = useAppStore.getState();
+              const preferDir = st.selectedFolderPath ?? st.workspaceRoot;
+              // 「名前を付けて保存」でフォルダが選択 (または WS が開いて) いる場合は、
+              // 既存ファイルの場所より選択中フォルダを既定にしたいので currentPath は渡さない
+              const currentPath = saveAs && preferDir ? null : doc.path;
+              path = await showSaveFileDialog(doc.name, currentPath, preferDir);
             }
             if (!path) break;
             await writeFile(path, doc.content);

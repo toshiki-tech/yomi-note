@@ -14,6 +14,7 @@ import {
 import { open as openDialog, save as saveDialog, ask } from "@tauri-apps/plugin-dialog";
 import { platform } from "@tauri-apps/plugin-os";
 import { documentDir, join } from "@tauri-apps/api/path";
+import { t } from "../i18n";
 import type { FileTreeNode } from "../types";
 
 /** 直近の保存ディレクトリ。一度ユーザーが選んだ場所を覚えておく */
@@ -22,6 +23,13 @@ let lastSaveDir: string | null = null;
 /** Markdown 拡張子の判定 */
 export function isMarkdownPath(path: string): boolean {
   return /\.(md|markdown|mdx|mkd)$/i.test(path);
+}
+
+/** 画像 / 音声 / 動画ファイルの判定 (ファイルツリーに表示し、エディタへドラッグ挿入できるようにする) */
+export function isMediaPath(path: string): boolean {
+  return /\.(png|jpe?g|gif|webp|svg|bmp|avif|mp3|wav|ogg|m4a|flac|aac|opus|mp4|webm|mov|mkv|m4v|avi)$/i.test(
+    path,
+  );
 }
 
 /** ファイルを開くダイアログ -> パスを返す */
@@ -83,11 +91,18 @@ export async function showSaveFileDialog(
   return result ?? null;
 }
 
-/** 確認ダイアログ (Yes / No) */
-export async function confirmDiscard(message: string): Promise<boolean> {
+/** 確認ダイアログ (はい / いいえ)。
+ *  ボタン文言は OS ロケールではなくアプリの言語設定に追従させる。
+ *  okLabel を渡すと「はい」側のラベルを差し替えられる (削除確認なら "削除" など)。 */
+export async function confirmDiscard(
+  message: string,
+  okLabel?: string,
+): Promise<boolean> {
   return await ask(message, {
     title: "YomiNote",
     kind: "warning",
+    okLabel: okLabel ?? t("common.confirmOk"),
+    cancelLabel: t("common.cancel"),
   });
 }
 
@@ -142,7 +157,7 @@ export async function buildFileTree(
         isDirectory: true,
         children,
       });
-    } else if (isMarkdownPath(entry.name)) {
+    } else if (isMarkdownPath(entry.name) || isMediaPath(entry.name)) {
       nodes.push({
         name: entry.name,
         path: childPath,
