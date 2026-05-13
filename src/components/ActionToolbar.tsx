@@ -9,7 +9,7 @@
 // floating 時は Left のみ position: fixed で App.tsx 直下にレンダされ、
 // アクション行内では Right だけが残る。
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { useAppStore } from "../store/useAppStore";
 import { useSettingsStore } from "../store/useSettingsStore";
@@ -56,6 +56,18 @@ export function ActionToolbarLeft({
   const isFloating = mode === "floating";
 
   const [annotating, setAnnotating] = useState(false);
+
+  // 注音 (kuromoji 形態素解析) は同期的に重いので、走っている間は
+  // body にクラスを付けて全要素のカーソルを "progress" (矢印 + ぐるぐる) に
+  // 固定する。エディタ内では通常 I-beam (細い縦棒) になりライト系背景で見失う
+  // のを防ぎ、かつ処理中であることをユーザに視覚的に知らせる。
+  useEffect(() => {
+    if (!annotating) return;
+    document.body.classList.add("is-app-busy");
+    return () => {
+      document.body.classList.remove("is-app-busy");
+    };
+  }, [annotating]);
 
   function run(cmd: (v: EditorView) => void) {
     if (editorView) cmd(editorView);

@@ -330,7 +330,9 @@ function SplitDragger() {
     const main = (e.currentTarget as HTMLElement).parentElement;
     if (!main) return;
     const rect = main.getBoundingClientRect();
-    document.body.style.cursor = "col-resize";
+    // ドラッグ中は全要素に col-resize を強制する (子要素が独自 cursor を
+    // 持っているとマウスがその上に来た瞬間 I-beam / pointer に切り替わってしまうため)
+    document.body.classList.add("is-col-resizing");
     document.body.style.userSelect = "none";
 
     let lastRatio = useSettingsStore.getState().settings.splitRatio;
@@ -346,7 +348,7 @@ function SplitDragger() {
       }));
     }
     function onUp() {
-      document.body.style.cursor = "";
+      document.body.classList.remove("is-col-resizing");
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
@@ -381,7 +383,9 @@ function SidebarDragger() {
   const t = useT();
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
-    document.body.style.cursor = "col-resize";
+    // ドラッグ中は全要素に col-resize を強制する (子要素が独自 cursor を
+    // 持っているとマウスがその上に来た瞬間 I-beam / pointer に切り替わってしまうため)
+    document.body.classList.add("is-col-resizing");
     document.body.style.userSelect = "none";
 
     let lastWidth = useSettingsStore.getState().settings.sidebarWidth;
@@ -397,7 +401,7 @@ function SidebarDragger() {
       }));
     }
     function onUp() {
-      document.body.style.cursor = "";
+      document.body.classList.remove("is-col-resizing");
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);

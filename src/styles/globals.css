@@ -342,6 +342,22 @@ html.dark .zen-preview th {
   background: rgba(255, 255, 255, 0.05);
 }
 
+/* スプリッタ/サイドバーのドラッグ中は全要素のカーソルを col-resize に固定する。
+ * body.style.cursor は継承しない要素 (text/pointer など独自 cursor を持つ箇所) に
+ * 効かず、ドラッグ中にカーソルがチカチカ切り替わって見失う原因になる。 */
+body.is-col-resizing,
+body.is-col-resizing * {
+  cursor: col-resize !important;
+}
+
+/* 注音などの重い同期処理中: 全要素のカーソルを progress に固定する。
+ * エディタの I-beam (細い縦棒) は明るい背景で見失いやすく、また「処理中」を
+ * 明示するためにも矢印 + ぐるぐるカーソルにしておく。 */
+body.is-app-busy,
+body.is-app-busy * {
+  cursor: progress !important;
+}
+
 .zen-preview img,
 .zen-preview video {
   max-width: 100%;
