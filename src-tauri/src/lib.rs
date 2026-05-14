@@ -4,9 +4,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::Serialize;
+use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
-    AppHandle, Emitter, Manager, Wry,
+    AppHandle, Emitter, Manager, State, Wry,
 };
 
 #[derive(Serialize)]
@@ -21,6 +22,24 @@ fn app_info() -> AppInfo {
         name: "YomiNote",
         version: env!("CARGO_PKG_VERSION"),
     }
+}
+
+/// 起動引数 (Windows のファイル関連付け経由など) で渡された Markdown ファイルパスを
+/// フロント起動完了まで保留する。フロントが consume_pending_open_paths を呼んで回収する。
+struct PendingOpenPaths(Mutex<Vec<String>>);
+
+/// 拡張子だけで Markdown 判定。OS から渡された任意のパスを誤って開かないよう
+/// .md / .markdown のみ受け入れる。
+fn is_markdown_path(path: &str) -> bool {
+    let lower = path.to_lowercase();
+    lower.ends_with(".md") || lower.ends_with(".markdown")
+}
+
+/// 起動時 / single-instance 起動時に積まれた保留パスを取り出す。回収後はクリアされる。
+#[tauri::command]
+fn consume_pending_open_paths(state: State<PendingOpenPaths>) -> Vec<String> {
+    let mut guard = state.0.lock().unwrap();
+    std::mem::take(&mut *guard)
 }
 
 /// メニューラベルを言語別に保持する構造体
@@ -364,6 +383,22 @@ fn show_context_menu(window: tauri::WebviewWindow, lang: String) -> Result<(), S
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // 二重起動防止: 既に起動している場合、2 回目の argv をこのコールバックで受け取る。
+        // Windows でファイル関連付けから .md をダブルクリックした際、新プロセスは
+        // 起動せずに既存ウィンドウへ "open-file-from-os" イベントを送り込む。
+        // 必ず最初に登録すること (tauri-plugin-single-instance の制約)。
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // 既存ウィンドウを前面へ
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+            for arg in argv.iter().skip(1) {
+                if is_markdown_path(arg) {
+                    let _ = app.emit("open-file-from-os", arg.clone());
+                }
+            }
+        }))
         // ウィンドウサイズ・位置の記憶
         .plugin(tauri_plugin_window_state::Builder::default().build())
         // ローカル設定の永続化 (JSON ストア)
@@ -380,12 +415,25 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_info,
             set_menu_language,
-            show_context_menu
+            show_context_menu,
+            consume_pending_open_paths
         ])
-        // 起動時にデフォルト英語メニューを構築
+        // 起動時にデフォルト英語メニューを構築 + 起動引数を保留へ積む
         .setup(|app| {
+            app.manage(PendingOpenPaths(Mutex::new(Vec::new())));
             let menu = build_app_menu(app.handle(), "en")?;
             app.set_menu(menu)?;
+
+            // OS の関連付け / コマンドラインから渡された Markdown パスを保留する。
+            // フロント起動時に consume_pending_open_paths で取り出される。
+            let pending: Vec<String> = std::env::args()
+                .skip(1)
+                .filter(|a| is_markdown_path(a))
+                .collect();
+            if !pending.is_empty() {
+                let state = app.state::<PendingOpenPaths>();
+                state.0.lock().unwrap().extend(pending);
+            }
             Ok(())
         })
         // ネイティブメニュークリック / アクセラレータ発火時にフロントへイベント転送

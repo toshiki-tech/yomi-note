@@ -34,6 +34,23 @@ import {
   SIDEBAR_WIDTH_MAX,
 } from "./types";
 
+/** OS から渡された絶対パスを開いて最近のファイルにも積む。
+ *  メニュー経由の "Open..." と同じ後処理を行う (タブ追加 + recent files 永続化)。 */
+async function openFromPath(path: string) {
+  try {
+    const content = await readFile(path);
+    const store = useAppStore.getState();
+    store.openDocument(path, content);
+    const name = path.split(/[\\/]/).pop() ?? "untitled.md";
+    store.pushRecentFile({ path, name, openedAt: Date.now() });
+    await useSettingsStore
+      .getState()
+      .saveRecentFiles(useAppStore.getState().recentFiles);
+  } catch (err) {
+    console.warn("OS から渡されたファイルが開けません", path, err);
+  }
+}
+
 export default function App() {
   const viewMode = useAppStore((s) => s.viewMode);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
@@ -149,13 +166,41 @@ export default function App() {
       // デフォルト表示モード
       const loadedSettings = useSettingsStore.getState().settings;
       setViewMode(loadedSettings.defaultViewMode);
-      // 初回起動時はウェルカム文書を言語に合わせて表示
+      // Windows のファイル関連付け / CLI 引数で渡されたファイルを開く。
+      // ウェルカム文書の生成より先に行うことで、引数経由で開いたファイルだけが表示される。
+      try {
+        const pending = await invoke<string[]>("consume_pending_open_paths");
+        for (const p of pending) {
+          await openFromPath(p);
+        }
+      } catch (err) {
+        console.warn("起動引数の取得失敗", err);
+      }
+      // 初回起動時 (かつ引数で開いたものがない時) はウェルカム文書を言語に合わせて表示
       if (useAppStore.getState().documents.length === 0) {
         const id = newDocument();
         useAppStore.getState().updateContent(id, getSampleDoc(loadedSettings.language));
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 起動済みの状態で関連付け経由のダブルクリックがあった場合、Rust 側の
+  // single-instance プラグインがここへイベントを飛ばす。
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      const handle = await listen<string>("open-file-from-os", async (e) => {
+        await openFromPath(e.payload);
+      });
+      if (cancelled) handle();
+      else unlisten = handle;
+    })();
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
   }, []);
 
   // Tauri ファイルドロップイベント

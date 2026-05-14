@@ -53,6 +53,15 @@
     ],
     "category": "Productivity",
     "shortDescription": "YomiNote - Markdown editor with Japanese reading aids",
-    "longDescription": "YomiNote is a minimal, fast Markdown desktop editor with built-in furigana (kanji reading) and katakana-to-English annotations."
+    "longDescription": "YomiNote is a minimal, fast Markdown desktop editor with built-in furigana (kanji reading) and katakana-to-English annotations.",
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown"],
+        "name": "Markdown Document",
+        "description": "Markdown document",
+        "role": "Editor",
+        "rank": "Alternate"
+      }
+    ]
   }
 }
