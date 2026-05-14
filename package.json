@@ -11,6 +11,9 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "release:mac": "tauri build && node scripts/notarize-dmg.mjs",
+    "release:mac:intel": "tauri build --target x86_64-apple-darwin && node scripts/notarize-dmg.mjs src-tauri/target/x86_64-apple-darwin/release/bundle/dmg",
+    "release:mac:all": "npm run release:mac && npm run release:mac:intel",
     "build:jmdict": "node scripts/build-jmdict-katakana.mjs",
     "postinstall": "patch-package"
   },
