@@ -3,15 +3,21 @@
 
 import { useMemo } from "react";
 import { useAppStore } from "../store/useAppStore";
+import { useSettingsStore } from "../store/useSettingsStore";
 import { countCharacters, countLines, countWords } from "../utils/markdown";
 import { useT } from "../i18n";
+import { DEFAULT_SETTINGS } from "../types";
 
 export function StatusBar() {
   const doc = useAppStore((s) =>
     s.documents.find((d) => d.id === s.activeId) ?? null,
   );
   const viewMode = useAppStore((s) => s.viewMode);
+  const fontSize = useSettingsStore((s) => s.settings.fontSize);
   const t = useT();
+
+  // 既定フォントサイズを 100% としたズーム倍率。Ctrl+ホイールで滑らかに変化する。
+  const zoomPct = Math.round((fontSize / DEFAULT_SETTINGS.fontSize) * 100);
 
   const stats = useMemo(() => {
     const text = doc?.content ?? "";
@@ -47,6 +53,9 @@ export function StatusBar() {
       <div className="flex items-center gap-3">
         <span>Markdown</span>
         <span>{modeLabel}</span>
+        <span title={`${fontSize}px`}>
+          {t("status.zoom")}: {zoomPct}%
+        </span>
         <span>{t("status.lines")}: {stats.lines}</span>
         <span>{t("status.words")}: {stats.words}</span>
         <span>{t("status.chars")}: {stats.chars}</span>

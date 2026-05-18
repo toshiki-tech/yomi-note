@@ -1,6 +1,6 @@
 [package]
 name = "yomi-note"
-version = "0.1.0"
+version = "0.1.1"
 description = "YomiNote - 日本語の読みを助ける Markdown デスクトップエディタ"
 authors = ["YomiNote"]
 edition = "2021"

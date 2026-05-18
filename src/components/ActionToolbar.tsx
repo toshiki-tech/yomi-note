@@ -282,14 +282,30 @@ export function ActionToolbarLeft({
 
 // === Right segment: モード切替 + 設定 (固定。アクション行右端に常駐) ===
 
-export function ActionToolbarRight() {
+interface ActionToolbarRightProps {
+  /** 光标位置にプレビューを同期 (split/preview モードのみ表示) */
+  onSyncPreview: () => void;
+}
+
+export function ActionToolbarRight({ onSyncPreview }: ActionToolbarRightProps) {
   const t = useT();
   const viewMode = useAppStore((s) => s.viewMode);
   const setViewMode = useAppStore((s) => s.setViewMode);
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
+  const showSync = viewMode !== "edit";
 
   return (
     <div className="flex items-center gap-1">
+      {showSync && (
+        <button
+          onClick={onSyncPreview}
+          title={t("toolbar.syncPreview")}
+          className="rounded px-2 py-1 text-zen-subtle hover:bg-black/5 hover:text-zen-text dark:text-zen-dark-subtle dark:hover:bg-white/10 dark:hover:text-zen-dark-text"
+          aria-label={t("toolbar.syncPreview")}
+        >
+          <SyncIcon />
+        </button>
+      )}
       <ModeBtn current={viewMode} mode="edit" onClick={setViewMode} label={t("toolbar.modeEdit")} />
       <ModeBtn current={viewMode} mode="split" onClick={setViewMode} label={t("toolbar.modeSplit")} />
       <ModeBtn current={viewMode} mode="preview" onClick={setViewMode} label={t("toolbar.modePreview")} />
@@ -302,6 +318,28 @@ export function ActionToolbarRight() {
         ⚙
       </button>
     </div>
+  );
+}
+
+/** プレビュー同期アイコン: 左→右の二段矢印で「合わせる」を示す */
+function SyncIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 7h12l-3-3" />
+      <path d="M3 7l3 3" />
+      <path d="M21 17H9l3 3" />
+      <path d="M21 17l-3-3" />
+    </svg>
   );
 }
 

@@ -39,6 +39,23 @@ const md: MarkdownIt = new MarkdownIt({
   },
 }).use(taskLists, { enabled: true, label: false });
 
+/** 双方向スクロール同期用: ブロック級トークンに data-line=<源行号(1-based)> を付与する。
+ *  プレビュー DOM 側で `[data-line]` を辿って光標位置/視口に対応する行を逆引きできる。
+ *  対象: token.map がある _open / self-closing トークン。インライン側には付けない。
+ *  markdown-it の token.map は 0-based なので、CodeMirror の 1-based に揃える +1。
+ *  注意: fence (コードブロック) は highlight 関数が `<pre` で始まる HTML を直接返す
+ *  ため、デフォルト fence renderer が token.attrs を無視する。data-line は付かないが、
+ *  前後のブロックに付くので同期の精度は実用上十分。 */
+md.core.ruler.push("yominote_line_attr", function addLineNumbers(state) {
+  for (const token of state.tokens) {
+    if (!token.map) continue;
+    // _open は対応する閉じタグまでが 1 ブロック; nesting === 0 は単独ブロック (fence / hr)
+    if (token.type.endsWith("_open") || token.nesting === 0) {
+      token.attrSet("data-line", String(token.map[0] + 1));
+    }
+  }
+});
+
 /** ASCII で書かれた罫線 (`|`, `-`, `+`) を Unicode の box-drawing 文字に置換する。
  *  `+` は周囲 4 方向の罫線文字を見て、適切なコーナー / T 字 / 十字を選択する。 */
 function boxifyAsciiArt(text: string): string {
@@ -205,14 +222,18 @@ md.inline.ruler.before("emphasis", "zen_ruby", function rubyRule(state, silent) 
   if (state.src.charCodeAt(start) !== 0x7b /* { */) return false;
   const m = state.src.slice(start).match(/^\{([^|}\n\r]+)\|([^|}\n\r]+)\}/);
   if (!m) return false;
-  if (silent) return true;
   const [full, base, reading] = m;
-  const isEnglish = /^[\x20-\x7e]+$/.test(reading);
-  const cls = isEnglish ? ' class="zen-katakana"' : "";
-  // html_inline トークンとして直接 HTML を吐く (md.options.html: true 想定)
-  const token = state.push("html_inline", "", 0);
-  token.content =
-    `<ruby${cls}>${md.utils.escapeHtml(base)}<rt>${md.utils.escapeHtml(reading)}</rt></ruby>`;
+  // silent モード (リンクラベル探索など内部 walk 用) でもトークン push を
+  // 抑止しつつ pos を進める必要がある。pos を進めずに true を返すと markdown-it
+  // が "inline rule didn't increment state.pos" として例外を投げる。
+  if (!silent) {
+    const isEnglish = /^[\x20-\x7e]+$/.test(reading);
+    const cls = isEnglish ? ' class="zen-katakana"' : "";
+    // html_inline トークンとして直接 HTML を吐く (md.options.html: true 想定)
+    const token = state.push("html_inline", "", 0);
+    token.content =
+      `<ruby${cls}>${md.utils.escapeHtml(base)}<rt>${md.utils.escapeHtml(reading)}</rt></ruby>`;
+  }
   state.pos = start + full.length;
   return true;
 });

@@ -37,8 +37,8 @@ import { insertPastedImage } from "../utils/mediaActions";
 
 interface EditorProps {
   isDark: boolean;
-  /** スクロール同期コールバック (0..1 の比率) */
-  onScroll?: (ratio: number) => void;
+  /** スクロール同期コールバック (視口最上行の 1-based 行番号) */
+  onScroll?: (line: number) => void;
   /** 外部からエディタビューを取得するためのコールバック */
   onReady?: (view: EditorView) => void;
 }
@@ -115,11 +115,11 @@ export function Editor({ isDark, onScroll, onReady }: EditorProps) {
         }),
         EditorView.domEventHandlers({
           scroll: (_e, view) => {
-            const sd = view.scrollDOM;
-            const max = sd.scrollHeight - sd.clientHeight;
-            if (max > 0 && onScroll) {
-              onScroll(sd.scrollTop / max);
-            }
+            if (!onScroll) return;
+            // 視口最上端 (scrollTop 相当) に位置する行ブロックを引いて 1-based 行番号を返す
+            const block = view.lineBlockAtHeight(view.scrollDOM.scrollTop);
+            const line = view.state.doc.lineAt(block.from).number;
+            onScroll(line);
           },
           // クリップボードに画像があれば assets/ に書き出して挿入する
           paste: (e, view) => {

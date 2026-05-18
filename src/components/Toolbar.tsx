@@ -11,9 +11,11 @@ import { useT } from "../i18n";
 
 interface ToolbarProps {
   editorView: EditorView | null;
+  /** 「光标位置にプレビューを同期」ボタンの実行。split / preview モードで表示 */
+  onSyncPreview: () => void;
 }
 
-export function Toolbar({ editorView }: ToolbarProps) {
+export function Toolbar({ editorView, onSyncPreview }: ToolbarProps) {
   const {
     documents,
     activeId,
@@ -215,7 +217,7 @@ export function Toolbar({ editorView }: ToolbarProps) {
           <ActionToolbarLeft editorView={editorView} mode="docked" />
         )}
         <div className="flex-1" />
-        <ActionToolbarRight />
+        <ActionToolbarRight onSyncPreview={onSyncPreview} />
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 // 三カラムレイアウト + ツールバー + ステータスバー + 設定モーダル
 
 import { useEffect, useRef, useState } from "react";
-import type { EditorView } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import { Editor } from "./components/Editor";
 import { Preview, type PreviewHandle } from "./components/Preview";
 import { Sidebar } from "./components/Sidebar";
@@ -13,8 +13,10 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { AboutDialog } from "./components/AboutDialog";
 import { MediaInsertDialog } from "./components/MediaInsertDialog";
 import { UserDictPanel } from "./components/UserDictPanel";
+import { SelectionAnnotatePopup } from "./components/SelectionAnnotatePopup";
 import { useAppStore } from "./store/useAppStore";
 import { useSettingsStore } from "./store/useSettingsStore";
+import { useDictStore, lookupTop } from "./store/useDictStore";
 import { useMenuListener } from "./hooks/useMenuListener";
 import { useAutoSave } from "./hooks/useAutoSave";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -25,7 +27,6 @@ import { insertDroppedFiles } from "./utils/mediaActions";
 import { readFile } from "./utils/fs";
 import { confirmDiscard } from "./utils/fs";
 import { getSampleDoc, resolveLanguage, useT, t as tNow } from "./i18n";
-import { useUserDictStore, lookupUserDict } from "./store/useUserDictStore";
 import { setUserDictLookup } from "./utils/katakanaDict";
 import {
   SPLIT_RATIO_MIN,
@@ -121,18 +122,60 @@ export default function App() {
   // Ctrl+S / Ctrl+Shift+S は WebView2 のページ保存に横取りされネイティブメニューの
   // アクセラレータが発火しないことがある。フロント側で先に捕捉し、
   // 既存の "menu-action" リスナへイベントを emit して同じ保存処理を流す。
+  // 同時に Ctrl+` (バックティック) でプレビューを光標位置に同期。
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
-      if (e.key.toLowerCase() !== "s") return;
-      e.preventDefault();
-      e.stopPropagation();
-      void emit("menu-action", e.shiftKey ? "save_as" : "save");
+      const k = e.key.toLowerCase();
+      if (k === "s") {
+        e.preventDefault();
+        e.stopPropagation();
+        void emit("menu-action", e.shiftKey ? "save_as" : "save");
+        return;
+      }
+      if (e.key === "`") {
+        e.preventDefault();
+        e.stopPropagation();
+        syncPreviewToCursor();
+        return;
+      }
     }
     // capture フェーズで処理することで CodeMirror / WebView2 より先に取れる
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorView]);
+
+  // Ctrl/⌘ + マウスホイールでエディタ + プレビューのフォントサイズを拡縮する。
+  // ブラウザ既定のページズームを抑止し、settings.fontSize を [10, 32] に
+  // クランプして直接書き換える。連続ホイール中の disk 書き込みを避けるため、
+  // メモリ更新は即時 / 永続化は停止後 300ms に debounce する (SplitDragger と同じ方針)。
+  useEffect(() => {
+    let persistTimer: number | null = null;
+    function onWheel(e: WheelEvent) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const current = useSettingsStore.getState().settings.fontSize;
+      const delta = e.deltaY < 0 ? 1 : -1;
+      const next = Math.max(10, Math.min(32, current + delta));
+      if (next === current) return;
+      useSettingsStore.setState((s) => ({
+        settings: { ...s.settings, fontSize: next },
+      }));
+      if (persistTimer !== null) window.clearTimeout(persistTimer);
+      persistTimer = window.setTimeout(() => {
+        void useSettingsStore.getState().update({
+          fontSize: useSettingsStore.getState().settings.fontSize,
+        });
+      }, 300);
+    }
+    // preventDefault を効かせるため passive: false が必須
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      if (persistTimer !== null) window.clearTimeout(persistTimer);
+    };
   }, []);
 
   // 右クリック時に WebView2 の既定メニューを抑制し、Rust 側のローカライズ済み
@@ -156,10 +199,10 @@ export default function App() {
 
   // 起動時: 設定の読み込み + 既定モード反映 + ウェルカム文書 + ドラッグ&ドロップ
   useEffect(() => {
-    // カタカナ辞書 lookup にユーザー辞書を差し込む
-    setUserDictLookup(lookupUserDict);
-    // ユーザー辞書をディスクからロード
-    void useUserDictStore.getState().load();
+    // カタカナ辞書 lookup にユーザー辞書 (type=english の最高権重) を差し込む
+    setUserDictLookup((w) => lookupTop(w, "english"));
+    // 統合ユーザー辞書をディスクからロード (初回は旧 KEY から自動移行)
+    void useDictStore.getState().load();
     (async () => {
       const recents = await loadFromDisk();
       setRecentFiles(recents);
@@ -255,15 +298,44 @@ export default function App() {
     };
   }, []);
 
-  // === スクロール同期 ===
+  // === スクロール同期 (行番号ベース) ===
+  // 編集側は行号 = 視口最上行を流す。プレビュー側は同期で scrollToLine するが、
+  // それを起点とした逆方向の onScroll を抑制するため syncSource で gate する。
   const syncSource = useRef<"editor" | "preview" | null>(null);
-  const handleEditorScroll = (ratio: number) => {
+  const handleEditorScroll = (line: number) => {
     if (syncSource.current === "preview") return;
     syncSource.current = "editor";
-    previewRef.current?.scrollToRatio(ratio);
+    previewRef.current?.scrollToLine(line);
     window.setTimeout(() => {
       if (syncSource.current === "editor") syncSource.current = null;
-    }, 50);
+    }, 60);
+  };
+  const handlePreviewScroll = (line: number) => {
+    if (syncSource.current === "editor") return;
+    if (!editorView) return;
+    syncSource.current = "preview";
+    const doc = editorView.state.doc;
+    const clamped = Math.max(1, Math.min(doc.lines, line));
+    const pos = doc.line(clamped).from;
+    editorView.dispatch({
+      effects: EditorView.scrollIntoView(pos, { y: "start", yMargin: 0 }),
+    });
+    window.setTimeout(() => {
+      if (syncSource.current === "preview") syncSource.current = null;
+    }, 60);
+  };
+
+  /** ツールバー / ショートカット用: 編集側の光標位置を起点にプレビューを同期する */
+  const syncPreviewToCursor = () => {
+    if (!editorView) return;
+    const line = editorView.state.doc.lineAt(
+      editorView.state.selection.main.head,
+    ).number;
+    syncSource.current = "editor";
+    previewRef.current?.scrollToLine(line);
+    window.setTimeout(() => {
+      if (syncSource.current === "editor") syncSource.current = null;
+    }, 60);
   };
 
   if (!settingsLoaded) {
@@ -280,7 +352,7 @@ export default function App() {
         isDark ? "dark" : ""
       }`}
     >
-      <Toolbar editorView={editorView} />
+      <Toolbar editorView={editorView} onSyncPreview={syncPreviewToCursor} />
       <div className="flex min-w-0 flex-1 overflow-hidden">
         {sidebarOpen && (
           <>
@@ -337,6 +409,7 @@ export default function App() {
                   ref={previewRef}
                   source={activeDoc.content}
                   docPath={activeDoc.path}
+                  onScroll={handlePreviewScroll}
                 />
               ) : (
                 <EmptyState />
@@ -359,6 +432,8 @@ export default function App() {
           onClose={() => useAppStore.getState().setUserDictOpen(false)}
         />
       )}
+      {/* エディタの選択範囲に応じて出る浮動操作パネル (辞書への保存・適用) */}
+      <SelectionAnnotatePopup view={editorView} />
     </div>
   );
 }
